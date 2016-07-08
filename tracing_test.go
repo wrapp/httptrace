@@ -7,12 +7,12 @@ import (
 	"os"
 	"testing"
 
-	"strings"
-
+	_ "github.com/wrapp/wrapplog"
 	log "github.com/Sirupsen/logrus"
 	"github.com/m4rw3r/uuid"
 	"github.com/stretchr/testify/suite"
 	"golang.org/x/net/context"
+	"encoding/json"
 )
 
 type TracingSuite struct {
@@ -61,16 +61,22 @@ func (s *TracingSuite) TestMiddlewarePreservesRequestIDIfPresent() {
 func (s *TracingSuite) TestParameterLoggingMiddleware() {
 	buf := new(bytes.Buffer)
 	log.SetOutput(buf)
-	defer log.SetOutput(os.Stdout)
 	ctx := context.Background()
 	req, _ := http.NewRequest("GET", "/endpoint", bytes.NewReader(nil))
 	resp := httptest.NewRecorder()
-	resp.WriteHeader(http.StatusOK)
 	ParameterLoggingMiddleWare(
 		func(ctx context.Context, w http.ResponseWriter, r *http.Request) {
 			AddToLogging(ctx, "some-key", "some-value")
+			w.WriteHeader(http.StatusOK)
 		})(ctx, resp, req)
-	s.True(strings.Contains(buf.String(), "some-key=some-value"))
+	log.SetOutput(os.Stdout)
+	res := map[string]interface{}{}
+	err := json.Unmarshal(buf.Bytes()[5:len(buf.Bytes()) - 1], &res)
+	s.NoError(err)
+	value, found := res["some-key"]
+	s.True(found)
+	s.Equal("some-value", value.(string))
+
 }
 
 func (s *TracingSuite) TestClientSetsHeaders() {
