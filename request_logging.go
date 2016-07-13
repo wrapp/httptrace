@@ -7,8 +7,9 @@ import (
 
 	"reflect"
 	"runtime"
-	gorillactx "github.com/gorilla/context"
+
 	log "github.com/Sirupsen/logrus"
+	gorillactx "github.com/gorilla/context"
 	"golang.org/x/net/context"
 )
 
@@ -63,8 +64,10 @@ func ParameterLoggingMiddleWare(h ContextHandlerFunc) ContextHandlerFunc {
 					fields[CtxRequestIDKey] = requestIDStr
 				}
 			}
-			for k, v := range GetAllLoggingValues(ctx) {
-				fields[k.(string)] = v
+			if loggingValues, found := GetAllLoggingValues(ctx); found {
+				for k, v := range loggingValues {
+					fields[k.(string)] = v
+				}
 			}
 			gorillactx.Clear(ctx.Value(parameterLoggingKey).(*http.Request))
 			if e := recover(); e != nil {
@@ -92,12 +95,15 @@ func AddToLogging(ctx context.Context, key string, value interface{}) {
 	gorillactx.Set(req, key, value)
 }
 
-func GetLoogingValue(ctx context.Context, key string) (interface{}, bool) {
+func GetLoggingValue(ctx context.Context, key string) (interface{}, bool) {
 	return gorillactx.GetOk(ctx.Value(parameterLoggingKey).(*http.Request), key)
 }
 
-func GetAllLoggingValues(ctx context.Context) map[interface{}]interface{} {
-	return gorillactx.GetAll(ctx.Value(parameterLoggingKey).(*http.Request))
+func GetAllLoggingValues(ctx context.Context) (map[interface{}]interface{}, bool) {
+	if ret, found := gorillactx.GetAllOk(ctx.Value(parameterLoggingKey).(*http.Request)); found {
+		return ret, found
+	}
+	return nil, false
 }
 
 type statusResponseWriter struct {
