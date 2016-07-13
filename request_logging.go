@@ -56,6 +56,7 @@ func ParameterLoggingMiddleWare(h ContextHandlerFunc) ContextHandlerFunc {
 			"method":   r.Method,
 		}
 		lw := &statusResponseWriter{w: w}
+		gorillactx.Clear(r)
 		ctx = context.WithValue(ctx, parameterLoggingKey, r)
 		defer func(begin time.Time) {
 			fields["took"] = time.Since(begin).String()
@@ -69,7 +70,7 @@ func ParameterLoggingMiddleWare(h ContextHandlerFunc) ContextHandlerFunc {
 					fields[k.(string)] = v
 				}
 			}
-			gorillactx.Clear(ctx.Value(parameterLoggingKey).(*http.Request))
+			gorillactx.Clear(r)
 			if e := recover(); e != nil {
 				msg, stack := extractPanic(e)
 				fields["error"] = msg
