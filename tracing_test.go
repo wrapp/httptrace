@@ -10,6 +10,7 @@ import (
 	"encoding/json"
 
 	log "github.com/Sirupsen/logrus"
+	gorillactx "github.com/gorilla/context"
 	"github.com/m4rw3r/uuid"
 	"github.com/stretchr/testify/suite"
 	_ "github.com/wrapp/wrapplog"
@@ -68,6 +69,8 @@ func (s *TracingSuite) TestParameterLoggingMiddleware() {
 	ParameterLoggingMiddleWare(
 		func(ctx context.Context, w http.ResponseWriter, r *http.Request) {
 			AddToLogging(ctx, "some-key", "some-value")
+			// add non-logging related stuff to gorilla context
+			gorillactx.Set(r, "unrelated-stuff", 42)
 			w.WriteHeader(http.StatusOK)
 		})(ctx, resp, req)
 	log.SetOutput(os.Stdout)
@@ -77,6 +80,8 @@ func (s *TracingSuite) TestParameterLoggingMiddleware() {
 	value, found := res["some-key"]
 	s.True(found)
 	s.Equal("some-value", value.(string))
+	_, found = res["unrelated-stuff"]
+	s.False(found)
 }
 
 func (s *TracingSuite) TestParameterLoggingMiddlewareNoLoggedValues() {
@@ -86,9 +91,8 @@ func (s *TracingSuite) TestParameterLoggingMiddlewareNoLoggedValues() {
 	ParameterLoggingMiddleWare(
 		func(ctx context.Context, w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusOK)
-			values, found := GetAllLoggingValues(ctx)
-			s.False(found)
-			s.Equal(map[interface{}]interface{}(nil), values)
+			values := getAllLoggingValues(ctx)
+			s.Equal(map[loggingKeyType]interface{}(nil), values)
 		})(ctx, resp, req)
 }
 

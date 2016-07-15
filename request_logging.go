@@ -47,7 +47,11 @@ func LoggingMiddleWare(h ContextHandlerFunc) ContextHandlerFunc {
 	}
 }
 
-const parameterLoggingKey = "httptrace"
+// unexported key types
+type requestKeyType string
+type loggingKeyType string
+
+const requestKey requestKeyType = "httptrace"
 
 func ParameterLoggingMiddleWare(h ContextHandlerFunc) ContextHandlerFunc {
 	return func(ctx context.Context, w http.ResponseWriter, r *http.Request) {
@@ -56,8 +60,7 @@ func ParameterLoggingMiddleWare(h ContextHandlerFunc) ContextHandlerFunc {
 			"method":   r.Method,
 		}
 		lw := &statusResponseWriter{w: w}
-		gorillactx.Clear(r)
-		ctx = context.WithValue(ctx, parameterLoggingKey, r)
+		ctx = context.WithValue(ctx, requestKey, r)
 		defer func(begin time.Time) {
 			fields["took"] = time.Since(begin).String()
 			if requestID := ctx.Value(CtxRequestIDKey); requestID != nil {
@@ -65,10 +68,8 @@ func ParameterLoggingMiddleWare(h ContextHandlerFunc) ContextHandlerFunc {
 					fields[CtxRequestIDKey] = requestIDStr
 				}
 			}
-			if loggingValues, found := GetAllLoggingValues(ctx); found {
-				for k, v := range loggingValues {
-					fields[k.(string)] = v
-				}
+			for k, v := range getAllLoggingValues(ctx) {
+				fields[string(k)] = v
 			}
 			gorillactx.Clear(r)
 			if e := recover(); e != nil {
@@ -92,19 +93,25 @@ func ParameterLoggingMiddleWare(h ContextHandlerFunc) ContextHandlerFunc {
 }
 
 func AddToLogging(ctx context.Context, key string, value interface{}) {
-	req := ctx.Value(parameterLoggingKey).(*http.Request)
-	gorillactx.Set(req, key, value)
+	req := ctx.Value(requestKey).(*http.Request)
+	gorillactx.Set(req, loggingKeyType(key), value)
 }
 
 func GetLoggingValue(ctx context.Context, key string) (interface{}, bool) {
-	return gorillactx.GetOk(ctx.Value(parameterLoggingKey).(*http.Request), key)
+	return gorillactx.GetOk(ctx.Value(requestKey).(*http.Request), loggingKeyType(key))
 }
 
-func GetAllLoggingValues(ctx context.Context) (map[interface{}]interface{}, bool) {
-	if ret, found := gorillactx.GetAllOk(ctx.Value(parameterLoggingKey).(*http.Request)); found {
-		return ret, found
+func getAllLoggingValues(ctx context.Context) map[loggingKeyType]interface{} {
+	ret := make(map[loggingKeyType]interface{})
+	if reqData, found := gorillactx.GetAllOk(ctx.Value(requestKey).(*http.Request)); found {
+		for k, v := range reqData {
+			if loggingKey, ok := k.(loggingKeyType); ok {
+				ret[loggingKey] = v
+			}
+		}
+		return ret
 	}
-	return nil, false
+	return nil
 }
 
 type statusResponseWriter struct {
