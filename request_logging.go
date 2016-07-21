@@ -29,17 +29,22 @@ func LoggingMiddleWare(h ContextHandlerFunc) ContextHandlerFunc {
 			}
 			if e := recover(); e != nil {
 				msg, stack := extractPanic(e)
-				fields["error"] = msg
+				fields["panic"] = msg
 				fields["traceback"] = stack
-				http.Error(w, fmt.Sprintf("%s \n%s", msg, stack), http.StatusInternalServerError)
-			} else if lw.status != http.StatusOK {
-				fields["error"] = http.StatusText(lw.status)
+				http.Error(lw, fmt.Sprintf("%s \n%s", msg, stack), http.StatusInternalServerError)
 			}
-			if _, found := fields["error"]; found {
+			fields["status_text"] = http.StatusText(lw.status)
+			switch {
+			case lw.status < 300:
+				log.WithFields(fields).Info("request successful")
+			case lw.status >= 300 && lw.status < 400:
+				log.WithFields(fields).Warn("additional action required")
+			case lw.status >= 400 && lw.status < 500:
+				log.WithFields(fields).Warn("request failed")
+			default:
 				log.WithFields(fields).Error("request failed")
-			} else {
-				log.WithFields(fields).Info("request succesful")
 			}
+
 		}(time.Now())
 
 		h(ctx, lw, r)
@@ -74,16 +79,20 @@ func ParameterLoggingMiddleWare(h ContextHandlerFunc) ContextHandlerFunc {
 			gorillactx.Clear(r)
 			if e := recover(); e != nil {
 				msg, stack := extractPanic(e)
-				fields["error"] = msg
+				fields["panic"] = msg
 				fields["traceback"] = stack
-				http.Error(w, fmt.Sprintf("%s \n%s", msg, stack), http.StatusInternalServerError)
-			} else if lw.status != http.StatusOK {
-				fields["error"] = http.StatusText(lw.status)
+				http.Error(lw, fmt.Sprintf("%s \n%s", msg, stack), http.StatusInternalServerError)
 			}
-			if _, found := fields["error"]; found {
+			fields["status_text"] = http.StatusText(lw.status)
+			switch {
+			case lw.status < 300:
+				log.WithFields(fields).Info("request successful")
+			case lw.status >= 300 && lw.status < 400:
+				log.WithFields(fields).Warn("additional action required")
+			case lw.status >= 400 && lw.status < 500:
+				log.WithFields(fields).Warn("request failed")
+			default:
 				log.WithFields(fields).Error("request failed")
-			} else {
-				log.WithFields(fields).Info("request succesful")
 			}
 		}(time.Now())
 
