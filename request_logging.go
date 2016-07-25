@@ -13,6 +13,12 @@ import (
 	"golang.org/x/net/context"
 )
 
+var debug bool = false
+
+func SetDebug(debug bool) {
+	debug = debug
+}
+
 func LoggingMiddleWare(h ContextHandlerFunc) ContextHandlerFunc {
 	return func(ctx context.Context, w http.ResponseWriter, r *http.Request) {
 		fields := log.Fields{
@@ -35,7 +41,7 @@ func LoggingMiddleWare(h ContextHandlerFunc) ContextHandlerFunc {
 			}
 			fields["status_text"] = http.StatusText(lw.status)
 			switch {
-			case lw.status < 300:
+			case lw.status < 300 && debug:
 				log.WithFields(fields).Info("request successful")
 			case lw.status >= 300 && lw.status < 400:
 				log.WithFields(fields).Warn("additional action required")
@@ -85,7 +91,7 @@ func ParameterLoggingMiddleWare(h ContextHandlerFunc) ContextHandlerFunc {
 			}
 			fields["status_text"] = http.StatusText(lw.status)
 			switch {
-			case lw.status < 300:
+			case lw.status < 300 && debug:
 				log.WithFields(fields).Info("request successful")
 			case lw.status >= 300 && lw.status < 400:
 				log.WithFields(fields).Warn("additional action required")
