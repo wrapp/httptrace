@@ -9,6 +9,8 @@ import (
 
 	"encoding/json"
 
+	"fmt"
+
 	log "github.com/Sirupsen/logrus"
 	gorillactx "github.com/gorilla/context"
 	"github.com/m4rw3r/uuid"
@@ -71,8 +73,36 @@ func (s *TracingSuite) TestParameterLoggingMiddleware() {
 			AddToLogging(ctx, "some-key", "some-value")
 			// add non-logging related stuff to gorilla context
 			gorillactx.Set(r, "unrelated-stuff", 42)
+			w.WriteHeader(http.StatusInternalServerError)
+		})(ctx, resp, req)
+	fmt.Println(buf)
+	log.SetOutput(os.Stdout)
+	res := map[string]interface{}{}
+	err := json.Unmarshal(buf.Bytes()[5:len(buf.Bytes())-1], &res)
+	s.NoError(err)
+	value, found := res["some-key"]
+	s.True(found)
+	s.Equal("some-value", value.(string))
+	_, found = res["unrelated-stuff"]
+	s.False(found)
+}
+
+func (s *TracingSuite) TestParameterLoggingMiddlewareDebug() {
+	SetDebug(true)
+	defer SetDebug(false)
+	buf := new(bytes.Buffer)
+	log.SetOutput(buf)
+	ctx := context.Background()
+	req, _ := http.NewRequest("GET", "/endpoint", bytes.NewReader(nil))
+	resp := httptest.NewRecorder()
+	ParameterLoggingMiddleWare(
+		func(ctx context.Context, w http.ResponseWriter, r *http.Request) {
+			AddToLogging(ctx, "some-key", "some-value")
+			// add non-logging related stuff to gorilla context
+			gorillactx.Set(r, "unrelated-stuff", 42)
 			w.WriteHeader(http.StatusOK)
 		})(ctx, resp, req)
+	fmt.Println(buf)
 	log.SetOutput(os.Stdout)
 	res := map[string]interface{}{}
 	err := json.Unmarshal(buf.Bytes()[5:len(buf.Bytes())-1], &res)
