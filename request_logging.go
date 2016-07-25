@@ -15,8 +15,8 @@ import (
 
 var debug bool = false
 
-func SetDebug(debug bool) {
-	debug = debug
+func SetDebug(d bool) {
+	debug = d
 }
 
 func LoggingMiddleWare(h ContextHandlerFunc) ContextHandlerFunc {
