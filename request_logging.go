@@ -41,8 +41,10 @@ func LoggingMiddleWare(h ContextHandlerFunc) ContextHandlerFunc {
 			}
 			fields["status_text"] = http.StatusText(lw.status)
 			switch {
-			case lw.status < 300 && debug:
-				log.WithFields(fields).Info("request successful")
+			case lw.status < 300:
+				if debug {
+					log.WithFields(fields).Info("request successful")
+				}
 			case lw.status >= 300 && lw.status < 400:
 				log.WithFields(fields).Warn("additional action required")
 			case lw.status >= 400 && lw.status < 500:
@@ -91,8 +93,10 @@ func ParameterLoggingMiddleWare(h ContextHandlerFunc) ContextHandlerFunc {
 			}
 			fields["status_text"] = http.StatusText(lw.status)
 			switch {
-			case lw.status < 300 && debug:
-				log.WithFields(fields).Info("request successful")
+			case lw.status < 300:
+				if debug {
+					log.WithFields(fields).Info("request successful")
+				}
 			case lw.status >= 300 && lw.status < 400:
 				log.WithFields(fields).Warn("additional action required")
 			case lw.status >= 400 && lw.status < 500:
