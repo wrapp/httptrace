@@ -144,3 +144,52 @@ func (s *TracingSuite) TestClientSetsHeaders() {
 	s.NoError(err)
 	s.Equal(http.StatusOK, resp.StatusCode)
 }
+
+func (s *TracingSuite) TestRecover() {
+	handler := func(w http.ResponseWriter, r *http.Request) {
+		panic("Oh, no!")
+	}
+	mux := http.NewServeMux()
+	mux.HandleFunc("/endpoint", handler)
+	server := httptest.NewServer(Recover(mux))
+	defer server.Close()
+
+	buf := new(bytes.Buffer)
+
+	log.SetOutput(buf)
+	http.Get(server.URL + "/endpoint")
+	log.SetOutput(os.Stdout)
+
+	var output map[string]interface{}
+	json.Unmarshal(buf.Bytes()[6:], &output)
+	s.Contains(output, "panic")
+	s.Contains(output, "traceback")
+	s.Contains(output, "endpoint")
+	s.Equal("Unhandled panic: Oh, no!", output["panic"].(string))
+}
+
+func (s *TracingSuite) TestLoggingMiddlewareHasPrecedenceOverRecover() {
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request) {
+		AddToLogging(ctx, "MyKey", "MyValue")
+		panic("Oh, no!")
+	}
+	mux := http.NewServeMux()
+	mux.HandleFunc("/endpoint", NewHandlerFunc(handler))
+	server := httptest.NewServer(Recover(mux))
+	defer server.Close()
+
+	buf := new(bytes.Buffer)
+
+	log.SetOutput(buf)
+	http.Get(server.URL + "/endpoint")
+	log.SetOutput(os.Stdout)
+
+	var output map[string]interface{}
+	json.Unmarshal(buf.Bytes()[6:], &output)
+	s.Contains(output, "panic")
+	s.Equal("Unhandled panic: Oh, no!", output["panic"].(string))
+	s.Contains(output, "traceback")
+	s.Contains(output, "endpoint")
+	s.Contains(output, "MyKey")
+	s.Equal("MyValue", output["MyKey"].(string))
+}
