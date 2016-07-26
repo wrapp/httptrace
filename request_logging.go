@@ -5,7 +5,6 @@ import (
 	"net/http"
 	"time"
 
-	"reflect"
 	"runtime"
 
 	log "github.com/Sirupsen/logrus"
@@ -161,15 +160,19 @@ func (l *statusResponseWriter) WriteHeader(status int) {
 }
 
 func extractPanic(p interface{}) (msg string, stack string) {
-	msg = "unhandled panic: "
+	msg = "Unhandled panic: "
 	var buf [4096]byte
 	runtime.Stack(buf[:], true)
 	stack = string(buf[:runtime.Stack(buf[:], false)])
-	switch v := p.(type) {
+	switch p := p.(type) {
 	case string:
-		msg += v
+		msg += p
+	case error:
+		msg += p.Error()
+	case fmt.Stringer:
+		msg += p.String()
 	default:
-		msg += reflect.TypeOf(v).String()
+		msg += fmt.Sprintf("%T: %+v\n", p, p)
 	}
 	return
 }

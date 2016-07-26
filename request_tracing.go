@@ -51,7 +51,7 @@ type TracingHTTPClient struct {
 	HTTPClient
 }
 
-func (c *TracingHTTPClient) Do(ctx context.Context, req *http.Request) (resp *http.Response, err error) {
+func (c *TracingHTTPClient) Do(ctx context.Context, req *http.Request) (*http.Response, error) {
 	if userAgent != "" {
 		req.Header.Set("User-Agent", userAgent)
 	}
@@ -63,7 +63,7 @@ func (c *TracingHTTPClient) Do(ctx context.Context, req *http.Request) (resp *ht
 	return c.HTTPClient.Do(req)
 }
 
-func (c *TracingHTTPClient) Get(ctx context.Context, url string) (resp *http.Response, err error) {
+func (c *TracingHTTPClient) Get(ctx context.Context, url string) (*http.Response, error) {
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		return nil, err
@@ -71,7 +71,7 @@ func (c *TracingHTTPClient) Get(ctx context.Context, url string) (resp *http.Res
 	return c.Do(ctx, req)
 }
 
-func (c *TracingHTTPClient) Post(ctx context.Context, url string, bodyType string, body io.Reader) (resp *http.Response, err error) {
+func (c *TracingHTTPClient) Post(ctx context.Context, url string, bodyType string, body io.Reader) (*http.Response, error) {
 	req, err := http.NewRequest("POST", url, body)
 	if err != nil {
 		return nil, err
@@ -82,10 +82,10 @@ func (c *TracingHTTPClient) Post(ctx context.Context, url string, bodyType strin
 
 var DefaultTracingHTTPClient = TracingHTTPClient{http.DefaultClient}
 
-func Get(ctx context.Context, url string) (resp *http.Response, err error) {
+func Get(ctx context.Context, url string) (*http.Response, error) {
 	return DefaultTracingHTTPClient.Get(ctx, url)
 }
 
-func Post(ctx context.Context, url string, bodyType string, body io.Reader) (resp *http.Response, err error) {
+func Post(ctx context.Context, url string, bodyType string, body io.Reader) (*http.Response, error) {
 	return DefaultTracingHTTPClient.Post(ctx, url, bodyType, body)
 }
