@@ -7,7 +7,7 @@ import (
 	log "github.com/Sirupsen/logrus"
 )
 
-func ListenAndServe(addr string, handler http.Handler) error {
+func ListenAndServeWithRecover(addr string, handler http.Handler) error {
 	log.Info(fmt.Sprintf("Starting service on %s", addr))
 	return http.ListenAndServe(addr, Recover(handler))
 }
@@ -28,5 +28,6 @@ func Recover(handler http.Handler) http.Handler {
 				}
 			}()
 			handler.ServeHTTP(w, r)
-		})
+		},
+	)
 }

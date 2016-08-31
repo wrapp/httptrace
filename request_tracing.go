@@ -4,8 +4,9 @@ import (
 	"io"
 	"net/http"
 
+	"context"
+
 	"github.com/m4rw3r/uuid"
-	"golang.org/x/net/context"
 )
 
 const (
@@ -19,27 +20,31 @@ func SetGlobalUserAgent(ua string) {
 	userAgent = ua
 }
 
-func TracingMiddleware(h ContextHandlerFunc) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		ctx := newContextWithRequestID(r)
-		defer func() {
-			if requestID := ctx.Value(CtxRequestIDKey); requestID != nil {
-				if requestIDStr, ok := requestID.(string); ok {
-					w.Header().Set(HeaderRequestIDKey, requestIDStr)
+func TracingMiddleware(h http.HandlerFunc) http.HandlerFunc {
+	return http.HandlerFunc(
+		func(w http.ResponseWriter, r *http.Request) {
+			requestWithContext := r.WithContext(context.WithValue(r.Context(), CtxRequestIDKey, getRequestID(r)))
+			defer func() {
+				if requestID := requestWithContext.Context().Value(CtxRequestIDKey); requestID != nil {
+					if requestIDStr, ok := requestID.(string); ok {
+						w.Header().Set(HeaderRequestIDKey, requestIDStr)
+					}
 				}
-			}
-		}()
-		h(ctx, w, r)
-	}
+			}()
+
+			h(w, requestWithContext)
+
+		},
+	)
 }
 
-func newContextWithRequestID(req *http.Request) context.Context {
+func getRequestID(req *http.Request) string {
 	requestID := req.Header.Get(HeaderRequestIDKey)
 	if requestID == "" {
 		uuidValue, _ := uuid.V4()
 		requestID = uuidValue.String()
 	}
-	return context.WithValue(context.Background(), CtxRequestIDKey, requestID)
+	return requestID
 }
 
 // Any HTTP client implementing this interface can be used by the tracer HTTP client

@@ -7,9 +7,10 @@ import (
 
 	"runtime"
 
+	"context"
+
 	log "github.com/Sirupsen/logrus"
 	gorillactx "github.com/gorilla/context"
-	"golang.org/x/net/context"
 )
 
 var debug bool = false
@@ -18,96 +19,58 @@ func SetDebug(d bool) {
 	debug = d
 }
 
-func LoggingMiddleWare(h ContextHandlerFunc) ContextHandlerFunc {
-	return func(ctx context.Context, w http.ResponseWriter, r *http.Request) {
-		fields := log.Fields{
-			"endpoint": r.URL.Path,
-			"method":   r.Method,
-		}
-		lw := &statusResponseWriter{w: w}
-		defer func(begin time.Time) {
-			fields["took"] = time.Since(begin).String()
-			if requestID := ctx.Value(CtxRequestIDKey); requestID != nil {
-				if requestIDStr, ok := requestID.(string); ok {
-					fields[CtxRequestIDKey] = requestIDStr
-				}
-			}
-			if e := recover(); e != nil {
-				msg, stack := extractPanic(e)
-				fields["panic"] = msg
-				fields["traceback"] = stack
-				http.Error(lw, fmt.Sprintf("%s \n%s", msg, stack), http.StatusInternalServerError)
-			}
-			fields["status_text"] = http.StatusText(lw.status)
-			switch {
-			case lw.status < 300:
-				if debug {
-					log.WithFields(fields).Info("request successful")
-				}
-			case lw.status >= 300 && lw.status < 400:
-				log.WithFields(fields).Warn("additional action required")
-			case lw.status >= 400 && lw.status < 500:
-				log.WithFields(fields).Warn("request failed")
-			default:
-				log.WithFields(fields).Error("request failed")
-			}
-
-		}(time.Now())
-
-		h(ctx, lw, r)
-
-	}
-}
-
 // unexported key types
 type requestKeyType string
 type loggingKeyType string
 
 const requestKey requestKeyType = "httptrace"
 
-func ParameterLoggingMiddleWare(h ContextHandlerFunc) ContextHandlerFunc {
-	return func(ctx context.Context, w http.ResponseWriter, r *http.Request) {
-		fields := log.Fields{
-			"endpoint": r.URL.Path,
-			"method":   r.Method,
-		}
-		lw := &statusResponseWriter{w: w}
-		ctx = context.WithValue(ctx, requestKey, r)
-		defer func(begin time.Time) {
-			fields["took"] = time.Since(begin).String()
-			if requestID := ctx.Value(CtxRequestIDKey); requestID != nil {
-				if requestIDStr, ok := requestID.(string); ok {
-					fields[CtxRequestIDKey] = requestIDStr
+func LoggingMiddleWare(h http.HandlerFunc) http.HandlerFunc {
+	return http.HandlerFunc(
+		func(w http.ResponseWriter, r *http.Request) {
+			fields := log.Fields{
+				"endpoint": r.URL.Path,
+				"method":   r.Method,
+			}
+			lw := &statusResponseWriter{w: w}
+			ctx := context.WithValue(r.Context(), requestKey, r)
+			requestWithContext := r.WithContext(ctx)
+			defer func(begin time.Time) {
+				fields["took"] = time.Since(begin).String()
+				if requestID := ctx.Value(CtxRequestIDKey); requestID != nil {
+					if requestIDStr, ok := requestID.(string); ok {
+						fields[CtxRequestIDKey] = requestIDStr
+					}
 				}
-			}
-			for k, v := range getAllLoggingValues(ctx) {
-				fields[string(k)] = v
-			}
-			gorillactx.Clear(r)
-			if e := recover(); e != nil {
-				msg, stack := extractPanic(e)
-				fields["panic"] = msg
-				fields["traceback"] = stack
-				http.Error(lw, fmt.Sprintf("%s \n%s", msg, stack), http.StatusInternalServerError)
-			}
-			fields["status_text"] = http.StatusText(lw.status)
-			switch {
-			case lw.status < 300:
-				if debug {
-					log.WithFields(fields).Info("request successful")
+				for k, v := range getAllLoggingValues(ctx) {
+					fields[string(k)] = v
 				}
-			case lw.status >= 300 && lw.status < 400:
-				log.WithFields(fields).Warn("additional action required")
-			case lw.status >= 400 && lw.status < 500:
-				log.WithFields(fields).Warn("request failed")
-			default:
-				log.WithFields(fields).Error("request failed")
-			}
-		}(time.Now())
+				gorillactx.Clear(r)
+				if e := recover(); e != nil {
+					msg, stack := extractPanic(e)
+					fields["panic"] = msg
+					fields["traceback"] = stack
+					http.Error(lw, fmt.Sprintf("%s \n%s", msg, stack), http.StatusInternalServerError)
+				}
+				fields["status_text"] = http.StatusText(lw.status)
+				switch {
+				case lw.status < 300:
+					if debug {
+						log.WithFields(fields).Info("request successful")
+					}
+				case lw.status >= 300 && lw.status < 400:
+					log.WithFields(fields).Warn("additional action required")
+				case lw.status >= 400 && lw.status < 500:
+					log.WithFields(fields).Warn("request failed")
+				default:
+					log.WithFields(fields).Error("request failed")
+				}
+			}(time.Now())
 
-		h(ctx, lw, r)
+			h(lw, requestWithContext)
 
-	}
+		},
+	)
 }
 
 func AddToLogging(ctx context.Context, key string, value interface{}) {

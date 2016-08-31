@@ -11,12 +11,13 @@ import (
 
 	"fmt"
 
+	"context"
+
 	log "github.com/Sirupsen/logrus"
 	gorillactx "github.com/gorilla/context"
 	"github.com/m4rw3r/uuid"
 	"github.com/stretchr/testify/suite"
 	_ "github.com/wrapp/wrapplog"
-	"golang.org/x/net/context"
 )
 
 type TracingSuite struct {
@@ -37,8 +38,8 @@ func (s *TracingSuite) TestMiddlewareCreatesNewRequestIDIfNotPresent() {
 	req, _ := http.NewRequest("GET", "/endpoint", bytes.NewReader(nil))
 	resp := httptest.NewRecorder()
 	TracingMiddleware(
-		func(ctx context.Context, w http.ResponseWriter, r *http.Request) {
-			requestID := ctx.Value(CtxRequestIDKey)
+		func(w http.ResponseWriter, r *http.Request) {
+			requestID := r.Context().Value(CtxRequestIDKey)
 			s.NotEmpty(requestID)
 			_, ok := requestID.(string)
 			s.True(ok)
@@ -52,8 +53,8 @@ func (s *TracingSuite) TestMiddlewarePreservesRequestIDIfPresent() {
 	req.Header.Set(HeaderRequestIDKey, uuidValue.String())
 	resp := httptest.NewRecorder()
 	TracingMiddleware(
-		func(ctx context.Context, w http.ResponseWriter, r *http.Request) {
-			requestID := ctx.Value(CtxRequestIDKey)
+		func(w http.ResponseWriter, r *http.Request) {
+			requestID := r.Context().Value(CtxRequestIDKey)
 			s.NotEmpty(requestID)
 			requestIDStr, ok := requestID.(string)
 			s.True(ok)
@@ -65,16 +66,24 @@ func (s *TracingSuite) TestMiddlewarePreservesRequestIDIfPresent() {
 func (s *TracingSuite) TestParameterLoggingMiddleware() {
 	buf := new(bytes.Buffer)
 	log.SetOutput(buf)
-	ctx := context.Background()
 	req, _ := http.NewRequest("GET", "/endpoint", bytes.NewReader(nil))
 	resp := httptest.NewRecorder()
-	ParameterLoggingMiddleWare(
-		func(ctx context.Context, w http.ResponseWriter, r *http.Request) {
-			AddToLogging(ctx, "some-key", "some-value")
+	LoggingMiddleWare(
+		func(w http.ResponseWriter, r *http.Request) {
+			AddToLogging(r.Context(), "some-key", "some-value")
 			// add non-logging related stuff to gorilla context
 			gorillactx.Set(r, "unrelated-stuff", 42)
+
+			value, found := GetLoggingValue(r.Context(), "some-key")
+			s.True(found)
+			s.Equal(value.(string), "some-value")
+
+			value, found = GetLoggingValue(r.Context(), "unrelated-stuff")
+			s.False(found)
+			s.Nil(value)
+
 			w.WriteHeader(http.StatusInternalServerError)
-		})(ctx, resp, req)
+		})(resp, req)
 	fmt.Println(buf)
 	log.SetOutput(os.Stdout)
 	res := map[string]interface{}{}
@@ -92,16 +101,15 @@ func (s *TracingSuite) TestParameterLoggingMiddlewareDebug() {
 	defer SetDebug(false)
 	buf := new(bytes.Buffer)
 	log.SetOutput(buf)
-	ctx := context.Background()
 	req, _ := http.NewRequest("GET", "/endpoint", bytes.NewReader(nil))
 	resp := httptest.NewRecorder()
-	ParameterLoggingMiddleWare(
-		func(ctx context.Context, w http.ResponseWriter, r *http.Request) {
-			AddToLogging(ctx, "some-key", "some-value")
+	LoggingMiddleWare(
+		func(w http.ResponseWriter, r *http.Request) {
+			AddToLogging(r.Context(), "some-key", "some-value")
 			// add non-logging related stuff to gorilla context
 			gorillactx.Set(r, "unrelated-stuff", 42)
 			w.WriteHeader(http.StatusOK)
-		})(ctx, resp, req)
+		})(resp, req)
 	fmt.Println(buf)
 	log.SetOutput(os.Stdout)
 	res := map[string]interface{}{}
@@ -115,15 +123,14 @@ func (s *TracingSuite) TestParameterLoggingMiddlewareDebug() {
 }
 
 func (s *TracingSuite) TestParameterLoggingMiddlewareNoLoggedValues() {
-	ctx := context.Background()
 	req, _ := http.NewRequest("GET", "/endpoint", bytes.NewReader(nil))
 	resp := httptest.NewRecorder()
-	ParameterLoggingMiddleWare(
-		func(ctx context.Context, w http.ResponseWriter, r *http.Request) {
+	LoggingMiddleWare(
+		func(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusOK)
-			values := getAllLoggingValues(ctx)
+			values := getAllLoggingValues(r.Context())
 			s.Equal(map[loggingKeyType]interface{}(nil), values)
-		})(ctx, resp, req)
+		})(resp, req)
 }
 
 func (s *TracingSuite) TestClientSetsHeaders() {
@@ -169,12 +176,12 @@ func (s *TracingSuite) TestRecover() {
 }
 
 func (s *TracingSuite) TestLoggingMiddlewareHasPrecedenceOverRecover() {
-	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request) {
-		AddToLogging(ctx, "MyKey", "MyValue")
+	handler := func(w http.ResponseWriter, r *http.Request) {
+		AddToLogging(r.Context(), "MyKey", "MyValue")
 		panic("Oh, no!")
 	}
 	mux := http.NewServeMux()
-	mux.HandleFunc("/endpoint", NewHandlerFunc(handler))
+	mux.HandleFunc("/endpoint", HandlerFunc(handler))
 	server := httptest.NewServer(Recover(mux))
 	defer server.Close()
 
@@ -192,4 +199,35 @@ func (s *TracingSuite) TestLoggingMiddlewareHasPrecedenceOverRecover() {
 	s.Contains(output, "endpoint")
 	s.Contains(output, "MyKey")
 	s.Equal("MyValue", output["MyKey"].(string))
+}
+
+func (s *TracingSuite) TestTrace() {
+	handler := func(w http.ResponseWriter, r *http.Request) {
+		AddToLogging(r.Context(), "MyKey", "MyValue")
+		panic("Oh, no!")
+	}
+	mux := http.NewServeMux()
+	mux.HandleFunc("/endpoint", handler)
+	server := httptest.NewServer(Trace(mux))
+	defer server.Close()
+
+	buf := new(bytes.Buffer)
+
+	log.SetOutput(buf)
+	req, _ := http.NewRequest("GET", server.URL+"/endpoint", nil)
+	req.Header.Set(HeaderRequestIDKey, "Request-ID-Value")
+	http.DefaultClient.Do(req)
+	log.SetOutput(os.Stdout)
+
+	var output map[string]interface{}
+	s.NoError(json.Unmarshal(buf.Bytes()[6:], &output))
+	s.Contains(output, "panic")
+	s.Equal("Unhandled panic: Oh, no!", output["panic"].(string))
+	s.Contains(output, "traceback")
+	s.Contains(output, "endpoint")
+	s.Contains(output, "endpoint")
+	s.Contains(output, "MyKey")
+	s.Equal("MyValue", output["MyKey"].(string))
+	s.Contains(output, CtxRequestIDKey)
+	s.Equal("Request-ID-Value", output[CtxRequestIDKey].(string))
 }
