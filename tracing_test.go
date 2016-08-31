@@ -181,7 +181,7 @@ func (s *TracingSuite) TestLoggingMiddlewareHasPrecedenceOverRecover() {
 		panic("Oh, no!")
 	}
 	mux := http.NewServeMux()
-	mux.HandleFunc("/endpoint", HTTPTraceHandlerFunc(handler))
+	mux.HandleFunc("/endpoint", HandlerFunc(handler))
 	server := httptest.NewServer(Recover(mux))
 	defer server.Close()
 

@@ -7,7 +7,7 @@ import (
 	log "github.com/Sirupsen/logrus"
 )
 
-func HTTPTraceHandlerFunc(h http.HandlerFunc) http.HandlerFunc {
+func HandlerFunc(h http.HandlerFunc) http.HandlerFunc {
 	return TracingMiddleware(LoggingMiddleWare(h))
 }
 
@@ -17,7 +17,7 @@ func ListenAndServe(addr string, handler http.Handler) error {
 }
 
 func Trace(handler http.Handler) http.Handler {
-	return HTTPTraceHandlerFunc(
+	return HandlerFunc(
 		http.HandlerFunc(
 			func(w http.ResponseWriter, r *http.Request) {
 				handler.ServeHTTP(w, r)
