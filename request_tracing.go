@@ -9,9 +9,11 @@ import (
 	"github.com/m4rw3r/uuid"
 )
 
+type ctxRequestIDKeyType string // This avoids key collisions with clients
+
 const (
-	CtxRequestIDKey    string = "request-id"
-	HeaderRequestIDKey string = "X-Request-ID"
+	ctxRequestIDKey    ctxRequestIDKeyType = "request-id"
+	headerRequestIDKey string              = "X-Request-ID"
 )
 
 var userAgent string
@@ -23,11 +25,11 @@ func SetGlobalUserAgent(ua string) {
 func TracingMiddleware(h http.HandlerFunc) http.HandlerFunc {
 	return http.HandlerFunc(
 		func(w http.ResponseWriter, r *http.Request) {
-			requestWithContext := r.WithContext(context.WithValue(r.Context(), CtxRequestIDKey, getRequestID(r)))
+			requestWithContext := r.WithContext(context.WithValue(r.Context(), ctxRequestIDKey, getRequestID(r)))
 			defer func() {
-				if requestID := requestWithContext.Context().Value(CtxRequestIDKey); requestID != nil {
+				if requestID := requestWithContext.Context().Value(ctxRequestIDKey); requestID != nil {
 					if requestIDStr, ok := requestID.(string); ok {
-						w.Header().Set(HeaderRequestIDKey, requestIDStr)
+						w.Header().Set(headerRequestIDKey, requestIDStr)
 					}
 				}
 			}()
@@ -39,7 +41,7 @@ func TracingMiddleware(h http.HandlerFunc) http.HandlerFunc {
 }
 
 func getRequestID(req *http.Request) string {
-	requestID := req.Header.Get(HeaderRequestIDKey)
+	requestID := req.Header.Get(headerRequestIDKey)
 	if requestID == "" {
 		uuidValue, _ := uuid.V4()
 		requestID = uuidValue.String()
@@ -60,9 +62,9 @@ func (c *TracingHTTPClient) Do(ctx context.Context, req *http.Request) (*http.Re
 	if userAgent != "" {
 		req.Header.Set("User-Agent", userAgent)
 	}
-	if requestID := ctx.Value(CtxRequestIDKey); requestID != nil {
+	if requestID := ctx.Value(ctxRequestIDKey); requestID != nil {
 		if requestIDStr, ok := requestID.(string); ok {
-			req.Header.Set(HeaderRequestIDKey, requestIDStr)
+			req.Header.Set(headerRequestIDKey, requestIDStr)
 		}
 	}
 	return c.HTTPClient.Do(req)
