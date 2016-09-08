@@ -13,6 +13,7 @@ import (
 	gorillactx "github.com/gorilla/context"
 )
 
+// If debug is set to false, request-logging will only occur in case of error
 var debug bool = false
 
 func SetDebug(d bool) {
@@ -25,6 +26,13 @@ type loggingKeyType string // This allows discriminating httptrace-logging keys 
 
 const requestKey requestKeyType = "httptrace"
 
+// LoggingMiddleware adds logging and profiling capabilities to http.HandlerFunc.
+// When used, a number of useful request-local parameters will be logged once the request
+// finishes being processed. Any panic or errors will be captured and logged as well, along with
+// any other key-value pairs that may have been "added to logging" while serving a specific
+// request.
+// To add key-value pairs so that they are logged once the request has been processed, use the
+// function AddToLogging retrieving the context.Context from the request
 func LoggingMiddleWare(h http.HandlerFunc) http.HandlerFunc {
 	return http.HandlerFunc(
 		func(w http.ResponseWriter, r *http.Request) {
@@ -39,7 +47,7 @@ func LoggingMiddleWare(h http.HandlerFunc) http.HandlerFunc {
 				fields["took"] = time.Since(begin).String()
 				if requestID := ctx.Value(ctxRequestIDKey); requestID != nil {
 					if requestIDStr, ok := requestID.(string); ok {
-						fields[ctxRequestIDKey] = requestIDStr
+						fields[string(ctxRequestIDKey)] = requestIDStr
 					}
 				}
 				for k, v := range extractAllLoggingValues(ctx) {
@@ -73,6 +81,7 @@ func LoggingMiddleWare(h http.HandlerFunc) http.HandlerFunc {
 	)
 }
 
+// This function is used to add key-value pairs to logging
 func AddToLogging(ctx context.Context, key string, value interface{}) {
 	if iReq := ctx.Value(requestKey); iReq != nil {
 		if req, ok := iReq.(*http.Request); ok {

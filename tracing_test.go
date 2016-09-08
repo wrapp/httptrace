@@ -228,6 +228,6 @@ func (s *TracingSuite) TestTrace() {
 	s.Contains(output, "endpoint")
 	s.Contains(output, "MyKey")
 	s.Equal("MyValue", output["MyKey"].(string))
-	s.Contains(output, ctxRequestIDKey)
-	s.Equal("Request-ID-Value", output[ctxRequestIDKey].(string))
+	s.Contains(output, string(ctxRequestIDKey))
+	s.Equal("Request-ID-Value", output[string(ctxRequestIDKey)].(string))
 }
