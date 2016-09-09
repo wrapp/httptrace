@@ -13,6 +13,7 @@ import (
 	gorillactx "github.com/gorilla/context"
 )
 
+// If debug is set to false, request-logging will only occur in case of error
 var debug bool = false
 
 func SetDebug(d bool) {
@@ -20,11 +21,18 @@ func SetDebug(d bool) {
 }
 
 // unexported key types
-type requestKeyType string
-type loggingKeyType string
+type requestKeyType string // This avois collisions with other gorilla context keys
+type loggingKeyType string // This allows discriminating httptrace-logging keys from others
 
 const requestKey requestKeyType = "httptrace"
 
+// LoggingMiddleware adds logging and profiling capabilities to http.HandlerFunc.
+// When used, a number of useful request-local parameters will be logged once the request
+// finishes being processed. Any panic or errors will be captured and logged as well, along with
+// any other key-value pairs that may have been "added to logging" while serving a specific
+// request.
+// To add key-value pairs so that they are logged once the request has been processed, use the
+// function AddToLogging retrieving the context.Context from the request
 func LoggingMiddleWare(h http.HandlerFunc) http.HandlerFunc {
 	return http.HandlerFunc(
 		func(w http.ResponseWriter, r *http.Request) {
@@ -37,12 +45,12 @@ func LoggingMiddleWare(h http.HandlerFunc) http.HandlerFunc {
 			requestWithContext := r.WithContext(ctx)
 			defer func(begin time.Time) {
 				fields["took"] = time.Since(begin).String()
-				if requestID := ctx.Value(CtxRequestIDKey); requestID != nil {
+				if requestID := ctx.Value(ctxRequestIDKey); requestID != nil {
 					if requestIDStr, ok := requestID.(string); ok {
-						fields[CtxRequestIDKey] = requestIDStr
+						fields[string(ctxRequestIDKey)] = requestIDStr
 					}
 				}
-				for k, v := range getAllLoggingValues(ctx) {
+				for k, v := range extractAllLoggingValues(ctx) {
 					fields[string(k)] = v
 				}
 				gorillactx.Clear(r)
@@ -73,26 +81,51 @@ func LoggingMiddleWare(h http.HandlerFunc) http.HandlerFunc {
 	)
 }
 
+// This function is used to add key-value pairs to logging
 func AddToLogging(ctx context.Context, key string, value interface{}) {
-	req := ctx.Value(requestKey).(*http.Request)
-	gorillactx.Set(req, loggingKeyType(key), value)
+	if iReq := ctx.Value(requestKey); iReq != nil {
+		if req, ok := iReq.(*http.Request); ok {
+			gorillactx.Set(req, loggingKeyType(key), value)
+		}
+	}
 }
 
 func GetLoggingValue(ctx context.Context, key string) (interface{}, bool) {
-	return gorillactx.GetOk(ctx.Value(requestKey).(*http.Request), loggingKeyType(key))
+	iReq := ctx.Value(requestKey)
+	if iReq == nil {
+		return nil, false
+	}
+	req, ok := iReq.(*http.Request)
+	if !ok {
+		return nil, false
+	}
+	return gorillactx.GetOk(req, loggingKeyType(key))
 }
 
-func getAllLoggingValues(ctx context.Context) map[loggingKeyType]interface{} {
-	ret := make(map[loggingKeyType]interface{})
-	if reqData, found := gorillactx.GetAllOk(ctx.Value(requestKey).(*http.Request)); found {
-		for k, v := range reqData {
-			if loggingKey, ok := k.(loggingKeyType); ok {
-				ret[loggingKey] = v
-			}
-		}
-		return ret
+func extractAllLoggingValues(ctx context.Context) map[loggingKeyType]interface{} {
+	iReq := ctx.Value(requestKey)
+	if iReq == nil {
+		return nil
 	}
-	return nil
+
+	req, ok := iReq.(*http.Request)
+	if !ok {
+		return nil
+	}
+
+	reqData, found := gorillactx.GetAllOk(req)
+	if !found {
+		return nil
+	}
+
+	ret := make(map[loggingKeyType]interface{})
+	for k, v := range reqData {
+		if loggingKey, ok := k.(loggingKeyType); ok {
+			ret[loggingKey] = v
+			gorillactx.Delete(req, loggingKey)
+		}
+	}
+	return ret
 }
 
 type statusResponseWriter struct {

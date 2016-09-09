@@ -1,0 +1,30 @@
+hash: 15058da6aee5d2c9bd7289fafd8c7be1114d13fa4bea7c8592fb1ac9405aac27
+updated: 2016-09-08T16:23:05.658445762+02:00
+imports:
+- name: github.com/gorilla/context
+  version: aed02d124ae4a0e94fea4541c8effd05bf0c8296
+- name: github.com/m4rw3r/uuid
+  version: 00c72d48d5aaaf3058e26d9641164c43ba239f33
+- name: github.com/Sirupsen/logrus
+  version: a283a10442df8dc09befd873fab202bf8a253d6a
+- name: golang.org/x/sys
+  version: a646d33e2ee3172a661fc09bca23bb4889a41bc8
+  subpackages:
+  - unix
+testImports:
+- name: github.com/davecgh/go-spew
+  version: 5215b55f46b2b919f50a1df0eaa5886afe4e3b3d
+  subpackages:
+  - spew
+- name: github.com/pmezard/go-difflib
+  version: d8ed2627bdf02c080bf22230dbb337003b7aba2d
+  subpackages:
+  - difflib
+- name: github.com/stretchr/testify
+  version: d77da356e56a7428ad25149ca77381849a6a5232
+  subpackages:
+  - assert
+  - require
+  - suite
+- name: github.com/wrapp/wrapplog
+  version: 2b29ae76290fdb0c182ecf4732841c629fe2d815

@@ -39,28 +39,28 @@ func (s *TracingSuite) TestMiddlewareCreatesNewRequestIDIfNotPresent() {
 	resp := httptest.NewRecorder()
 	TracingMiddleware(
 		func(w http.ResponseWriter, r *http.Request) {
-			requestID := r.Context().Value(CtxRequestIDKey)
+			requestID := r.Context().Value(ctxRequestIDKey)
 			s.NotEmpty(requestID)
 			_, ok := requestID.(string)
 			s.True(ok)
 		})(resp, req)
-	s.NotEqual("", resp.Header().Get(HeaderRequestIDKey))
+	s.NotEqual("", resp.Header().Get(headerRequestIDKey))
 }
 
 func (s *TracingSuite) TestMiddlewarePreservesRequestIDIfPresent() {
 	req, _ := http.NewRequest("GET", "/endpoint", bytes.NewReader(nil))
 	uuidValue, _ := uuid.V4()
-	req.Header.Set(HeaderRequestIDKey, uuidValue.String())
+	req.Header.Set(headerRequestIDKey, uuidValue.String())
 	resp := httptest.NewRecorder()
 	TracingMiddleware(
 		func(w http.ResponseWriter, r *http.Request) {
-			requestID := r.Context().Value(CtxRequestIDKey)
+			requestID := r.Context().Value(ctxRequestIDKey)
 			s.NotEmpty(requestID)
 			requestIDStr, ok := requestID.(string)
 			s.True(ok)
 			s.Equal(uuidValue.String(), requestIDStr)
 		})(resp, req)
-	s.Equal(uuidValue.String(), resp.Header().Get(HeaderRequestIDKey))
+	s.Equal(uuidValue.String(), resp.Header().Get(headerRequestIDKey))
 }
 
 func (s *TracingSuite) TestParameterLoggingMiddleware() {
@@ -128,7 +128,7 @@ func (s *TracingSuite) TestParameterLoggingMiddlewareNoLoggedValues() {
 	LoggingMiddleWare(
 		func(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusOK)
-			values := getAllLoggingValues(r.Context())
+			values := extractAllLoggingValues(r.Context())
 			s.Equal(map[loggingKeyType]interface{}(nil), values)
 		})(resp, req)
 }
@@ -136,10 +136,10 @@ func (s *TracingSuite) TestParameterLoggingMiddlewareNoLoggedValues() {
 func (s *TracingSuite) TestClientSetsHeaders() {
 	SetGlobalUserAgent("TestUserAgent")
 	uuidValue, _ := uuid.V4()
-	ctx := context.WithValue(context.Background(), CtxRequestIDKey, uuidValue.String())
+	ctx := context.WithValue(context.Background(), ctxRequestIDKey, uuidValue.String())
 	handler := func(w http.ResponseWriter, r *http.Request) {
 		s.Equal("TestUserAgent", r.Header.Get("User-Agent"))
-		s.Equal(uuidValue.String(), r.Header.Get(HeaderRequestIDKey))
+		s.Equal(uuidValue.String(), r.Header.Get(headerRequestIDKey))
 	}
 
 	mux := http.NewServeMux()
@@ -181,7 +181,7 @@ func (s *TracingSuite) TestLoggingMiddlewareHasPrecedenceOverRecover() {
 		panic("Oh, no!")
 	}
 	mux := http.NewServeMux()
-	mux.HandleFunc("/endpoint", HandlerFunc(handler))
+	mux.HandleFunc("/endpoint", TracingHandlerFunc(handler))
 	server := httptest.NewServer(Recover(mux))
 	defer server.Close()
 
@@ -215,7 +215,7 @@ func (s *TracingSuite) TestTrace() {
 
 	log.SetOutput(buf)
 	req, _ := http.NewRequest("GET", server.URL+"/endpoint", nil)
-	req.Header.Set(HeaderRequestIDKey, "Request-ID-Value")
+	req.Header.Set(headerRequestIDKey, "Request-ID-Value")
 	http.DefaultClient.Do(req)
 	log.SetOutput(os.Stdout)
 
@@ -228,6 +228,6 @@ func (s *TracingSuite) TestTrace() {
 	s.Contains(output, "endpoint")
 	s.Contains(output, "MyKey")
 	s.Equal("MyValue", output["MyKey"].(string))
-	s.Contains(output, CtxRequestIDKey)
-	s.Equal("Request-ID-Value", output[CtxRequestIDKey].(string))
+	s.Contains(output, string(ctxRequestIDKey))
+	s.Equal("Request-ID-Value", output[string(ctxRequestIDKey)].(string))
 }
