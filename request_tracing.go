@@ -103,7 +103,7 @@ func Get(ctx context.Context, url string) (*http.Response, error) {
 }
 
 func Post(ctx context.Context, url string, bodyType string, body io.Reader) (*http.Response, error) {
-	return DefaultTracingHTTPClient.Put(ctx, url, bodyType, body)
+	return DefaultTracingHTTPClient.Post(ctx, url, bodyType, body)
 }
 
 func Put(ctx context.Context, url string, bodyType string, body io.Reader) (*http.Response, error) {
