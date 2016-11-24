@@ -16,6 +16,11 @@ const (
 	headerRequestIDKey string              = "X-Request-ID"
 )
 
+// GetRequestID gets the RequestID from a context.context
+func GetRequestID(ctx context.Context) string {
+	return ctx.Value(ctxRequestIDKey).(string)
+}
+
 var userAgent string
 
 func SetGlobalUserAgent(ua string) {
