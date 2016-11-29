@@ -16,6 +16,13 @@ const (
 	headerRequestIDKey string              = "X-Request-ID"
 )
 
+/* We need a getter for the RequestID in this package, because context.Context.Value is also considering the type when
+fetching values, and since the request-id is in a const, it is tied to this package. */
+// GetRequestID gets the RequestID from a context.context
+func GetRequestID(ctx context.Context) string {
+	return ctx.Value(ctxRequestIDKey).(string)
+}
+
 var userAgent string
 
 func SetGlobalUserAgent(ua string) {
