@@ -22,7 +22,7 @@ fetching values, and since the request-id is in a const, it is tied to this pack
 // GetRequestID gets the RequestID from a context.context
 func GetRequestID(ctx context.Context) (string, error) {
 	if ctx.Value(ctxRequestIDKey) == nil {
-		return nil, errors.New("Could not get request ID - request ID not set")
+		return "", errors.New("Could not get request ID - request ID not set")
 	}
 	return ctx.Value(ctxRequestIDKey).(string), nil
 }
