@@ -7,6 +7,7 @@ import (
 	"context"
 
 	"github.com/m4rw3r/uuid"
+	"errors"
 )
 
 type ctxRequestIDKeyType string // This avoids key collisions with clients
@@ -19,8 +20,11 @@ const (
 /* We need a getter for the RequestID in this package, because context.Context.Value is also considering the type when
 fetching values, and since the request-id is in a const, it is tied to this package. */
 // GetRequestID gets the RequestID from a context.context
-func GetRequestID(ctx context.Context) string {
-	return ctx.Value(ctxRequestIDKey).(string)
+func GetRequestID(ctx context.Context) (string, error) {
+	if ctx.Value(ctxRequestIDKey) == nil {
+		return nil, errors.New("Could not get request ID - request ID not set")
+	}
+	return ctx.Value(ctxRequestIDKey).(string), nil
 }
 
 var userAgent string
