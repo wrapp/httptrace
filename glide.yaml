@@ -3,6 +3,7 @@ import:
 - package: github.com/Sirupsen/logrus
 - package: github.com/gorilla/context
 - package: github.com/m4rw3r/uuid
+- package: github.com/tylerb/graceful
 testImport:
 - package: github.com/stretchr/testify
   subpackages:

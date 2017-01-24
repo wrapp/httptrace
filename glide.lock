@@ -1,5 +1,5 @@
-hash: 15058da6aee5d2c9bd7289fafd8c7be1114d13fa4bea7c8592fb1ac9405aac27
-updated: 2016-09-08T16:23:05.658445762+02:00
+hash: 117123ecdf26daf8d567006c1fb85f1a588fb9421c2ea6df9844f1eec5fa0b92
+updated: 2017-01-24T11:58:29.116197856+01:00
 imports:
 - name: github.com/gorilla/context
   version: aed02d124ae4a0e94fea4541c8effd05bf0c8296
@@ -7,6 +7,8 @@ imports:
   version: 00c72d48d5aaaf3058e26d9641164c43ba239f33
 - name: github.com/Sirupsen/logrus
   version: a283a10442df8dc09befd873fab202bf8a253d6a
+- name: github.com/tylerb/graceful
+  version: 0e9129e9c6d47da90dc0c188b26bd7bb1dab53cd
 - name: golang.org/x/sys
   version: a646d33e2ee3172a661fc09bca23bb4889a41bc8
   subpackages:
