@@ -4,7 +4,10 @@ import (
 	"fmt"
 	"net/http"
 
+	"time"
+
 	log "github.com/Sirupsen/logrus"
+	"github.com/tylerb/graceful"
 )
 
 // This middleware is defined for convenience to avoid the long chain of
@@ -35,7 +38,25 @@ func Trace(handler http.Handler) http.Handler {
 // This function can be used as a replacement for http.ListenAndServe.
 // When using this function, neither of the middlewares defined above are
 // necessary.
+
+// In addition to tracing capabilities this function also provides graceful
+// shutdown of the server. When a SIGTERM signal is received by the server
+// it will stop accepting new connections but it will keep it running until
+// all the existing connections have been closed. It will kill the server
+// after a default timeout of 25 seconds if there are still any pending
+// connections.
+
 func ListenAndServe(addr string, handler http.Handler) error {
 	log.Info(fmt.Sprintf("Starting service on %s", addr))
-	return http.ListenAndServe(addr, Trace(handler))
+	srv := &graceful.Server{
+		Timeout: 25 * time.Second,
+		LogFunc: func(format string, args ...interface{}) {
+			log.Info(format, args)
+		},
+		Server: &http.Server{
+			Addr:    addr,
+			Handler: Trace(handler),
+		},
+	}
+	return srv.ListenAndServe()
 }
