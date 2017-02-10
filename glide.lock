@@ -1,21 +1,21 @@
 hash: 117123ecdf26daf8d567006c1fb85f1a588fb9421c2ea6df9844f1eec5fa0b92
-updated: 2017-01-24T11:58:29.116197856+01:00
+updated: 2017-02-10T15:11:33.047451741+01:00
 imports:
 - name: github.com/gorilla/context
-  version: aed02d124ae4a0e94fea4541c8effd05bf0c8296
+  version: 08b5f424b9271eedf6f9f0ce86cb9396ed337a42
 - name: github.com/m4rw3r/uuid
   version: 00c72d48d5aaaf3058e26d9641164c43ba239f33
 - name: github.com/Sirupsen/logrus
-  version: a283a10442df8dc09befd873fab202bf8a253d6a
+  version: c078b1e43f58d563c74cebe63c85789e76ddb627
 - name: github.com/tylerb/graceful
   version: 0e9129e9c6d47da90dc0c188b26bd7bb1dab53cd
 - name: golang.org/x/sys
-  version: a646d33e2ee3172a661fc09bca23bb4889a41bc8
+  version: ca83bd2cb9abb47839b50eb4da612f00158f5870
   subpackages:
   - unix
 testImports:
 - name: github.com/davecgh/go-spew
-  version: 5215b55f46b2b919f50a1df0eaa5886afe4e3b3d
+  version: 6d212800a42e8ab5c146b8ace3490ee17e5225f9
   subpackages:
   - spew
 - name: github.com/pmezard/go-difflib
@@ -23,7 +23,7 @@ testImports:
   subpackages:
   - difflib
 - name: github.com/stretchr/testify
-  version: d77da356e56a7428ad25149ca77381849a6a5232
+  version: 69483b4bd14f5845b5a1e55bca19e954e827f1d0
   subpackages:
   - assert
   - require
