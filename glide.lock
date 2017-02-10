@@ -1,23 +1,14 @@
-<<<<<<< Updated upstream
 hash: 117123ecdf26daf8d567006c1fb85f1a588fb9421c2ea6df9844f1eec5fa0b92
-updated: 2017-01-24T11:58:29.116197856+01:00
-=======
-hash: 15058da6aee5d2c9bd7289fafd8c7be1114d13fa4bea7c8592fb1ac9405aac27
-updated: 2017-02-10T13:59:02.841518169+01:00
->>>>>>> Stashed changes
+updated: 2017-02-10T15:11:33.047451741+01:00
 imports:
 - name: github.com/gorilla/context
   version: 08b5f424b9271eedf6f9f0ce86cb9396ed337a42
 - name: github.com/m4rw3r/uuid
   version: 00c72d48d5aaaf3058e26d9641164c43ba239f33
 - name: github.com/Sirupsen/logrus
-<<<<<<< Updated upstream
-  version: a283a10442df8dc09befd873fab202bf8a253d6a
+  version: c078b1e43f58d563c74cebe63c85789e76ddb627
 - name: github.com/tylerb/graceful
   version: 0e9129e9c6d47da90dc0c188b26bd7bb1dab53cd
-=======
-  version: c078b1e43f58d563c74cebe63c85789e76ddb627
->>>>>>> Stashed changes
 - name: golang.org/x/sys
   version: ca83bd2cb9abb47839b50eb4da612f00158f5870
   subpackages:
