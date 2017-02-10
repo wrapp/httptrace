@@ -7,6 +7,7 @@ import (
 	"context"
 
 	"github.com/m4rw3r/uuid"
+	"os"
 )
 
 type ctxRequestIDKeyType string // This avoids key collisions with clients
@@ -14,19 +15,25 @@ type ctxRequestIDKeyType string // This avoids key collisions with clients
 const (
 	ctxRequestIDKey    ctxRequestIDKeyType = "request-id"
 	headerRequestIDKey string              = "X-Request-ID"
+	headerUniqueIDKey  string              = "X-Unique-ID"
 )
+
+var userAgent string
+
+// init reads the 'SERVICE_NAME' environment variable so that if it is not set manually, we have something meaningful
+func init() {
+	userAgent = os.Getenv(`SERVICE_NAME`)
+}
 
 /* We need a getter for the RequestID in this package, because context.Context.Value is also considering the type when
 fetching values, and since the request-id is in a const, it is tied to this package. */
 // GetRequestID gets the RequestID from a context.context
-func GetRequestID(ctx context.Context) (string) {
+func GetRequestID(ctx context.Context) string {
 	if ctx.Value(ctxRequestIDKey) == nil {
 		return ""
 	}
 	return ctx.Value(ctxRequestIDKey).(string)
 }
-
-var userAgent string
 
 func SetGlobalUserAgent(ua string) {
 	userAgent = ua
@@ -39,7 +46,8 @@ func TracingMiddleware(h http.HandlerFunc) http.HandlerFunc {
 			defer func() {
 				if requestID := requestWithContext.Context().Value(ctxRequestIDKey); requestID != nil {
 					if requestIDStr, ok := requestID.(string); ok {
-						w.Header().Set(headerRequestIDKey, requestIDStr)
+						setRequestID(w, headerRequestIDKey, requestIDStr)
+						setRequestID(w, headerUniqueIDKey, requestIDStr)
 					}
 				}
 			}()
@@ -59,7 +67,11 @@ func getRequestID(req *http.Request) string {
 	return requestID
 }
 
-// Any HTTP client implementing this interface can be used by the tracer HTTP client
+func setRequestID(w http.ResponseWriter, headerName string, headerValue string) {
+	w.Header().Set(headerName, headerValue)
+}
+
+// HTTPClient an client implementing this interface can be used by the tracer HTTP client
 type HTTPClient interface {
 	Do(req *http.Request) (resp *http.Response, err error)
 }

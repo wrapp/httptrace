@@ -20,8 +20,8 @@ func SetDebug(d bool) {
 	debug = d
 }
 
-// unexported key types
-type requestKeyType string // This avois collisions with other gorilla context keys
+// non-exported key types
+type requestKeyType string // This avoids collisions with other gorilla context keys
 type loggingKeyType string // This allows discriminating httptrace-logging keys from others
 
 const requestKey requestKeyType = "httptrace"
