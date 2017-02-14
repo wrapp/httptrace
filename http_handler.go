@@ -22,8 +22,11 @@ func TracingHandlerFunc(h http.HandlerFunc) http.HandlerFunc {
 // Trace is middleware that wraps a http.Handler adding request-tracing and
 // profiling capabilities.
 // This function can be used to enhance a http router adding extra
-// capabilities to all its enpoints.
+// capabilities to all its endpoints.
 func Trace(handler http.Handler) http.Handler {
+	if handler == nil {
+		handler = http.DefaultServeMux
+	}
 	return TracingHandlerFunc(
 		http.HandlerFunc(
 			func(w http.ResponseWriter, r *http.Request) {
@@ -36,7 +39,7 @@ func Trace(handler http.Handler) http.Handler {
 // ListenAndServe wraps the http.ListenAndServe function adding request-
 // tracing and profiling capabilities to the provided http.Handler.
 // This function can be used as a replacement for http.ListenAndServe.
-// When using this function, neither of the middlewares defined above are
+// When using this function, neither of the middleware defined above are
 // necessary.
 
 // In addition to tracing capabilities this function also provides graceful
