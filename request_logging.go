@@ -157,9 +157,9 @@ func (l *statusResponseWriter) WriteHeader(status int) {
 
 func extractPanic(p interface{}) (msg string, stack string) {
 	msg = "Unhandled panic: "
-	var buf [4096]byte
-	runtime.Stack(buf[:], true)
-	stack = string(buf[:runtime.Stack(buf[:], false)])
+	var buf []byte
+	runtime.Stack(buf, true)
+	stack = string(buf)
 	switch p := p.(type) {
 	case string:
 		msg += p
