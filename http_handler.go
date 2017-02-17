@@ -3,11 +3,14 @@ package httptrace
 import (
 	"fmt"
 	"net/http"
+	"os"
+	"os/signal"
 
 	"time"
 
+	"context"
+
 	log "github.com/Sirupsen/logrus"
-	"github.com/tylerb/graceful"
 )
 
 // TracingHandlerFunc is middleware defined for convenience to avoid the long chain of
@@ -43,23 +46,35 @@ func Trace(handler http.Handler) http.Handler {
 // necessary.
 
 // In addition to tracing capabilities this function also provides graceful
-// shutdown of the server. When a SIGTERM signal is received by the server
-// it will stop accepting new connections but it will keep it running until
-// all the existing connections have been closed. It will kill the server
+// shutdown of the server. When a SIGTERM or SIGINT signal is received by the
+// server it will stop accepting new connections but it will keep it running
+// until all the existing connections have been closed. It will kill the server
 // after a default timeout of 25 seconds if there are still any pending
 // connections.
 
-func ListenAndServe(addr string, handler http.Handler) error {
+func ListenAndServe(addr string, handler http.Handler) {
 	log.Info(fmt.Sprintf("Starting service on %s", addr))
-	srv := &graceful.Server{
-		Timeout: 25 * time.Second,
-		LogFunc: func(format string, args ...interface{}) {
-			log.Info(format, args)
-		},
-		Server: &http.Server{
-			Addr:    addr,
-			Handler: Trace(handler),
-		},
+
+	// channel for SIGINT signals
+	stopChan := make(chan os.Signal)
+	signal.Notify(stopChan, os.Interrupt)
+
+	srv := &http.Server{
+		Addr:    addr,
+		Handler: Trace(handler),
 	}
-	return srv.ListenAndServe()
+
+	go func() {
+		if err := srv.ListenAndServe(); err != nil {
+			log.Error("Server errror: ", err)
+			close(stopChan)
+		}
+	}()
+
+	<-stopChan // wait for SIGINT
+	log.Info("Shutting down server gracefully...")
+
+	ctx, _ := context.WithTimeout(context.Background(), 25*time.Second)
+	srv.Shutdown(ctx)
+	log.Info("Server gracefully stopped.")
 }
