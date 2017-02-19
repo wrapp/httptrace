@@ -52,7 +52,7 @@ func Trace(handler http.Handler) http.Handler {
 // after a default timeout of 25 seconds if there are still any pending
 // connections.
 
-func ListenAndServe(addr string, handler http.Handler) {
+func ListenAndServe(addr string, handler http.Handler) error {
 	log.Info(fmt.Sprintf("Starting service on %s", addr))
 
 	// channel for SIGINT signals
@@ -77,4 +77,5 @@ func ListenAndServe(addr string, handler http.Handler) {
 	ctx, _ := context.WithTimeout(context.Background(), 25*time.Second)
 	srv.Shutdown(ctx)
 	log.Info("Server gracefully stopped.")
+	return nil
 }
