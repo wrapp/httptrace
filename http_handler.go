@@ -64,8 +64,9 @@ func ListenAndServe(addr string, handler http.Handler) error {
 		Handler: Trace(handler),
 	}
 
+	var err error
 	go func() {
-		if err := srv.ListenAndServe(); err != nil {
+		if err = srv.ListenAndServe(); err != nil {
 			log.Error("Server errror: ", err)
 			close(stopChan)
 		}
@@ -77,5 +78,5 @@ func ListenAndServe(addr string, handler http.Handler) error {
 	ctx, _ := context.WithTimeout(context.Background(), 25*time.Second)
 	srv.Shutdown(ctx)
 	log.Info("Server gracefully stopped.")
-	return nil
+	return err
 }
