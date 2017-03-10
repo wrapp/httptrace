@@ -63,39 +63,6 @@ func (s *TracingSuite) TestMiddlewarePreservesRequestIDIfPresent() {
 	s.Equal(uuidValue.String(), resp.Header().Get(headerRequestIDKey))
 }
 
-func (s *TracingSuite) TestParameterLoggingMiddleware() {
-	buf := new(bytes.Buffer)
-	log.SetOutput(buf)
-	req, _ := http.NewRequest("GET", "/endpoint", bytes.NewReader(nil))
-	resp := httptest.NewRecorder()
-	LoggingMiddleWare(
-		func(w http.ResponseWriter, r *http.Request) {
-			AddToLogging(r.Context(), "some-key", "some-value")
-			// add non-logging related stuff to gorilla context
-			gorillactx.Set(r, "unrelated-stuff", 42)
-
-			value, found := GetLoggingValue(r.Context(), "some-key")
-			s.True(found)
-			s.Equal(value.(string), "some-value")
-
-			value, found = GetLoggingValue(r.Context(), "unrelated-stuff")
-			s.False(found)
-			s.Nil(value)
-
-			w.WriteHeader(http.StatusInternalServerError)
-		})(resp, req)
-	fmt.Println(buf)
-	log.SetOutput(os.Stdout)
-	res := map[string]interface{}{}
-	err := json.Unmarshal(buf.Bytes()[5:len(buf.Bytes())-1], &res)
-	s.NoError(err)
-	value, found := res["some-key"]
-	s.True(found)
-	s.Equal("some-value", value.(string))
-	_, found = res["unrelated-stuff"]
-	s.False(found)
-}
-
 func (s *TracingSuite) TestParameterLoggingMiddlewareDebug() {
 	SetDebug(true)
 	defer SetDebug(false)
@@ -175,32 +142,6 @@ func (s *TracingSuite) TestRecover() {
 	s.Equal("Unhandled panic: Oh, no!", output["panic"].(string))
 }
 
-func (s *TracingSuite) TestLoggingMiddlewareHasPrecedenceOverRecover() {
-	handler := func(w http.ResponseWriter, r *http.Request) {
-		AddToLogging(r.Context(), "MyKey", "MyValue")
-		panic("Oh, no!")
-	}
-	mux := http.NewServeMux()
-	mux.HandleFunc("/endpoint", TracingHandlerFunc(handler))
-	server := httptest.NewServer(Recover(mux))
-	defer server.Close()
-
-	buf := new(bytes.Buffer)
-
-	log.SetOutput(buf)
-	http.Get(server.URL + "/endpoint")
-	log.SetOutput(os.Stdout)
-
-	var output map[string]interface{}
-	json.Unmarshal(buf.Bytes()[6:], &output)
-	s.Contains(output, "panic")
-	s.Equal("Unhandled panic: Oh, no!", output["panic"].(string))
-	s.Contains(output, "traceback")
-	s.Contains(output, "endpoint")
-	s.Contains(output, "MyKey")
-	s.Equal("MyValue", output["MyKey"].(string))
-}
-
 func (s *TracingSuite) TestTrace() {
 	handler := func(w http.ResponseWriter, r *http.Request) {
 		AddToLogging(r.Context(), "MyKey", "MyValue")
@@ -219,15 +160,6 @@ func (s *TracingSuite) TestTrace() {
 	http.DefaultClient.Do(req)
 	log.SetOutput(os.Stdout)
 
-	var output map[string]interface{}
-	s.NoError(json.Unmarshal(buf.Bytes()[6:], &output))
-	s.Contains(output, "panic")
-	s.Equal("Unhandled panic: Oh, no!", output["panic"].(string))
-	s.Contains(output, "traceback")
-	s.Contains(output, "endpoint")
-	s.Contains(output, "endpoint")
-	s.Contains(output, "MyKey")
-	s.Equal("MyValue", output["MyKey"].(string))
-	s.Contains(output, string(ctxRequestIDKey))
-	s.Equal("Request-ID-Value", output[string(ctxRequestIDKey)].(string))
+	// Should not log anything
+	s.Equal(0, len(buf.Bytes()))
 }
