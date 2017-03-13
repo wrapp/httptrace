@@ -10,10 +10,10 @@ import (
 	"os"
 )
 
-type ctxRequestIDKeyType string // This avoids key collisions with clients
+type CtxRequestIDKeyType string // This avoids key collisions with clients
 
 const (
-	ctxRequestIDKey    ctxRequestIDKeyType = "request-id"
+	ctxRequestIDKey    CtxRequestIDKeyType = "request-id"
 	headerRequestIDKey string              = "X-Request-ID"
 	headerUniqueIDKey  string              = "X-Unique-ID"
 )
