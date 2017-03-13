@@ -10,7 +10,7 @@ import (
 	"os"
 )
 
-type CtxRequestIDKeyType string // This avoids key collisions with clients
+type CtxRequestIDKeyType string // This avoids key collisions with clients. THIS IS ONLY EXPORTED TO ALLOW FOR TESTING.
 
 const (
 	ctxRequestIDKey    CtxRequestIDKeyType = "request-id"
