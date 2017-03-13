@@ -61,17 +61,17 @@ func LoggingMiddleWare(h http.HandlerFunc) http.HandlerFunc {
 					http.Error(lw, fmt.Sprintf("%s \n%s", msg, stack), http.StatusInternalServerError)
 				}
 				fields["status_text"] = http.StatusText(lw.status)
-				switch {
-				case lw.status < 300:
-					if debug {
+				if debug {
+					switch {
+					case lw.status < 300:
 						log.WithFields(fields).Info("request successful")
+					case lw.status >= 300 && lw.status < 400:
+						log.WithFields(fields).Info("additional action required")
+					case lw.status >= 400 && lw.status < 500:
+						log.WithFields(fields).Info("request failed")
+					default:
+						log.WithFields(fields).Info("request failed")
 					}
-				case lw.status >= 300 && lw.status < 400:
-					log.WithFields(fields).Warn("additional action required")
-				case lw.status >= 400 && lw.status < 500:
-					log.WithFields(fields).Warn("request failed")
-				default:
-					log.WithFields(fields).Error("request failed")
 				}
 			}(time.Now())
 
