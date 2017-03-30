@@ -35,6 +35,12 @@ func GetRequestID(ctx context.Context) string {
 	return ctx.Value(ctxRequestIDKey).(string)
 }
 
+// ContextWithRequestID lets us generate a new context that contains a request ID. We use this for services which
+// are not entirely REST-ful but still want to propagate a request ID.
+func ContextWithRequestID(requestID string) context.Context {
+	return context.WithValue(context.Background(), ctxRequestIDKey, requestID)
+}
+
 func SetGlobalUserAgent(ua string) {
 	userAgent = ua
 }
