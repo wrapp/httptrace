@@ -10,6 +10,8 @@ import (
 
 	"context"
 
+	"syscall"
+
 	log "github.com/Sirupsen/logrus"
 )
 
@@ -55,9 +57,9 @@ func Trace(handler http.Handler) http.Handler {
 func ListenAndServe(addr string, handler http.Handler) error {
 	log.Info(fmt.Sprintf("Starting service on %s", addr))
 
-	// channel for SIGINT signals
+	// channel for SIGINT and SIGTERM signals
 	stopChan := make(chan os.Signal)
-	signal.Notify(stopChan, os.Interrupt)
+	signal.Notify(stopChan, syscall.SIGINT, syscall.SIGTERM)
 
 	srv := &http.Server{
 		Addr:    addr,
@@ -67,7 +69,7 @@ func ListenAndServe(addr string, handler http.Handler) error {
 	var err error
 	go func() {
 		if err = srv.ListenAndServe(); err != nil {
-			log.Error("Server errror: ", err)
+			log.Error("Server error: ", err)
 			close(stopChan)
 		}
 	}()
