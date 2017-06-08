@@ -1,10 +1,9 @@
 package: github.com/wrapp/httptrace
 import:
-- package: github.com/Sirupsen/logrus
+- package: github.com/sirupsen/logrus
 - package: github.com/gorilla/context
 - package: github.com/m4rw3r/uuid
 testImport:
 - package: github.com/stretchr/testify
   subpackages:
   - suite
-- package: github.com/wrapp/wrapplog

@@ -13,11 +13,10 @@ import (
 
 	"context"
 
-	log "github.com/Sirupsen/logrus"
 	gorillactx "github.com/gorilla/context"
 	"github.com/m4rw3r/uuid"
+	log "github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/suite"
-	_ "github.com/wrapp/wrapplog"
 )
 
 type TracingSuite struct {

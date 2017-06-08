@@ -9,7 +9,7 @@ import (
 
 	"context"
 
-	log "github.com/Sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 	gorillactx "github.com/gorilla/context"
 )
 

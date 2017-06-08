@@ -1,14 +1,14 @@
-hash: 15058da6aee5d2c9bd7289fafd8c7be1114d13fa4bea7c8592fb1ac9405aac27
-updated: 2017-02-17T18:43:05.178479126+01:00
+hash: 63f94f1fa531bc3db888eae9cd0b21a1508f765fe2dc003a5a1a1bc440bafb0c
+updated: 2017-06-08T19:25:20.60011282+02:00
 imports:
 - name: github.com/gorilla/context
   version: 08b5f424b9271eedf6f9f0ce86cb9396ed337a42
 - name: github.com/m4rw3r/uuid
   version: 00c72d48d5aaaf3058e26d9641164c43ba239f33
-- name: github.com/Sirupsen/logrus
-  version: 7f4b1adc791766938c29457bed0703fb9134421a
+- name: github.com/sirupsen/logrus
+  version: 68cec9f21fbf3ea8d8f98c044bc6ce05f17b267a
 - name: golang.org/x/sys
-  version: 075e574b89e4c2d22f2286a7e2b919519c6f3547
+  version: 0b25a408a50076fbbcae6b7ac0ea5fbb0b085e79
   subpackages:
   - unix
 testImports:
@@ -26,5 +26,3 @@ testImports:
   - assert
   - require
   - suite
-- name: github.com/wrapp/wrapplog
-  version: 2b29ae76290fdb0c182ecf4732841c629fe2d815
