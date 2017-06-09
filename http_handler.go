@@ -1,18 +1,15 @@
 package httptrace
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"os"
 	"os/signal"
-
+	"syscall"
 	"time"
 
-	"context"
-
-	"syscall"
-
-	log "github.com/Sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 )
 
 // TracingHandlerFunc is middleware defined for convenience to avoid the long chain of
