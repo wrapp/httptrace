@@ -2,6 +2,7 @@ package httptrace
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"os"
@@ -65,7 +66,7 @@ func ListenAndServe(addr string, handler http.Handler) error {
 
 	var err error
 	go func() {
-		if err = srv.ListenAndServe(); err != nil {
+		if err = srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			log.Error("Server error: ", err)
 			close(stopChan)
 		}
